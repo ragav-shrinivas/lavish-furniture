@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next';
-import { Cormorant_Garamond, Syne, Jost } from 'next/font/google';
 import { headers } from 'next/headers';
 import './globals.css';
 import { siteConfig } from '@/lib/config';
@@ -8,26 +7,6 @@ import { Footer } from '@/components/layout/Footer';
 import { SmoothScroll } from '@/components/layout/SmoothScroll';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { localBusinessJsonLd, websiteJsonLd } from '@/lib/seo';
-
-const display = Cormorant_Garamond({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600'],
-  style: ['normal', 'italic'],
-  variable: '--font-display',
-  display: 'swap',
-});
-const ui = Syne({
-  subsets: ['latin'],
-  weight: ['600', '700', '800'],
-  variable: '--font-ui',
-  display: 'swap',
-});
-const body = Jost({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600'],
-  variable: '--font-body',
-  display: 'swap',
-});
 
 const titleDefault = `${siteConfig.name} — Luxury Furniture Showroom in Velachery, Chennai`;
 const descLong =
@@ -95,7 +74,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const isAdmin = pathname.startsWith('/admin');
 
   return (
-    <html lang="en-IN" className={`${display.variable} ${ui.variable} ${body.variable}`}>
+    <html lang="en-IN">
       <body>
         {isAdmin ? (
           <main>{children}</main>

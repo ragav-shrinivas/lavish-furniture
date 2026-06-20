@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Google Fonts - CSS imports (client-side, avoids build-time network issues) */
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500;1,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap');
+
 /* ============================================================
    DESIGN TOKENS — Light Luxury
 ============================================================ */
@@ -13,6 +18,9 @@
   --shadow-soft:0 18px 50px -20px rgba(90,70,50,0.30);
   --shadow-lift:0 40px 90px -36px rgba(90,70,50,0.45);
   --ease:cubic-bezier(0.16,1,0.3,1);
+  --font-display:'Cormorant Garamond', serif;
+  --font-ui:'Syne', sans-serif;
+  --font-body:'Jost', sans-serif;
 }
 
 *{margin:0;padding:0;box-sizing:border-box;}

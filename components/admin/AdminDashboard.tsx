@@ -72,7 +72,6 @@ function Tab({ label, active, onClick }: { label: string; active: boolean; onCli
         borderBottom: `2px solid ${active ? '#C3A063' : 'transparent'}`,
         background: 'transparent',
         border: 'none',
-        borderBottom: `2px solid ${active ? '#C3A063' : 'transparent'}`,
         cursor: 'pointer',
         fontFamily: 'system-ui, sans-serif',
       }}
