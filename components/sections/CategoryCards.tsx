@@ -10,19 +10,19 @@ import {
 } from 'framer-motion';
 import { categories } from '@/lib/categories';
 import { TransitionLink } from '@/components/layout/PageTransition';
-import { EASE, DUR, fadeRise, stagger, viewportOnce } from '@/lib/motion';
+import { fadeRise, stagger, viewportOnce } from '@/lib/motion';
 
 /* ============================================================
-   SHOWROOM PANELS — cinematic collection discovery
-   Each collection is an editorial panel that enters one by one,
-   alternating from left and right, with spatial depth: travel,
-   settle-scale, a whisper of rotateY, blur clearing, and a media
-   clip reveal. While in view, the image, numeral and typography
-   drift on separate parallax planes driven by section-local
-   scroll progress. Canonical order comes from lib/categories.ts.
+   COLLECTION CARDS — unified clickable luxury objects
+   One bounded surface per collection: full-bleed showroom image,
+   double-frame champagne border with corner marks, integrated
+   numeral / title / arrow. The card itself never leaves its
+   layout slot — all immersion (zoom, drift) happens INSIDE the
+   clipped media viewport, so no dead space can ever appear.
+   Entrances alternate left/right in canonical order and fire as
+   soon as the card edge enters the viewport (no blank slots).
 ============================================================ */
 
-/** True below the desktop breakpoint — used to soften motion on touch. */
 function useIsCompact() {
   const [compact, setCompact] = useState(false);
   useEffect(() => {
@@ -35,117 +35,77 @@ function useIsCompact() {
   return compact;
 }
 
-const springIn = { type: 'spring', stiffness: 64, damping: 19, mass: 1.05 } as const;
+const springIn = { type: 'spring', stiffness: 80, damping: 21, mass: 1 } as const;
 
-function panelVariants(fromRight: boolean, compact: boolean, reduced: boolean) {
-  // every `show` neutralizes every property any mode's `hidden` can set,
-  // so switching breakpoints mid-page never strands blur/rotate residue
-  if (reduced) {
-    return {
-      hidden: { opacity: 0 },
-      show: {
-        opacity: 1,
-        x: '0%',
-        y: 0,
-        scale: 1,
-        rotateY: 0,
-        filter: 'blur(0px)',
-        transition: { duration: 0.4 },
-      },
-    };
-  }
+/* Every `show` neutralizes every key any mode's `hidden` can set. */
+function cardVariants(fromRight: boolean, compact: boolean, reduced: boolean) {
+  const show = {
+    opacity: 1,
+    x: 0,
+    scale: 1,
+    rotateY: 0,
+    filter: 'blur(0px)',
+    transition: springIn,
+  };
+  if (reduced) return { hidden: { opacity: 0 }, show: { ...show, transition: { duration: 0.4 } } };
   if (compact) {
-    // mobile: shorter travel, no 3D, no blur — smooth on weak GPUs
+    // restrained sideways step — never large enough to expose blank slots
     return {
-      hidden: { opacity: 0, x: fromRight ? '9%' : '-9%', y: 34, scale: 0.975 },
-      show: {
-        opacity: 1,
-        x: '0%',
-        y: 0,
-        scale: 1,
-        rotateY: 0,
-        filter: 'blur(0px)',
-        transition: { ...springIn, when: 'beforeChildren' as const, staggerChildren: 0.09 },
-      },
+      hidden: { opacity: 0, x: fromRight ? 32 : -32, scale: 0.965, filter: 'blur(4px)' },
+      show,
     };
   }
   return {
     hidden: {
-      opacity: 0.001,
-      x: fromRight ? '24%' : '-24%',
-      scale: 0.93,
-      rotateY: fromRight ? -7 : 7,
-      filter: 'blur(10px)',
+      opacity: 0,
+      x: fromRight ? '11%' : '-11%',
+      scale: 0.945,
+      rotateY: fromRight ? -5 : 5,
+      filter: 'blur(8px)',
     },
-    show: {
-      opacity: 1,
-      x: '0%',
-      y: 0,
-      scale: 1,
-      rotateY: 0,
-      filter: 'blur(0px)',
-      transition: { ...springIn, when: 'beforeChildren' as const, staggerChildren: 0.09 },
-    },
+    show,
   };
 }
 
-const mediaClip = {
-  hidden: { clipPath: 'inset(6% 12% 6% 12%)' },
-  show: { clipPath: 'inset(0% 0% 0% 0%)', transition: { duration: 1.1, ease: EASE } },
-};
-
-const textMask = {
-  hidden: { y: '120%' },
-  show: { y: '0%', transition: { duration: DUR.reveal, ease: EASE } },
-};
-
-const softRise = {
-  hidden: { opacity: 0, y: 22 },
-  show: { opacity: 1, y: 0, transition: { duration: DUR.reveal, ease: EASE } },
-};
-
-function ShowroomPanel({ index }: { index: number }) {
+function CollectionCard({ index }: { index: number }) {
   const cat = categories[index];
   const fromRight = index % 2 === 1;
   const ref = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
   const compact = useIsCompact();
 
-  /* section-local scroll progress drives the parallax planes */
+  /* immersive zoom lives INSIDE the clipped media viewport —
+     the card's layout box stays perfectly stable */
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ['start end', 'end start'],
   });
-  const progress = useSpring(scrollYProgress, { stiffness: 90, damping: 26, restDelta: 0.001 });
-
-  const intensity = reduced ? 0 : compact ? 0.45 : 1;
-
-  // Layer 2 — image plane: continuous settle-zoom + slow vertical drift
-  const imgScale = useTransform(progress, [0, 0.45, 1], [1 + 0.16 * intensity, 1.03, 1.0]);
-  const imgY = useTransform(progress, [0, 1], [`${-5 * intensity}%`, `${5 * intensity}%`]);
-  // Layer 3 — typography: drifts against the scroll
-  const bodyY = useTransform(progress, [0, 1], [26 * intensity, -26 * intensity]);
-  // Layer 4 — oversized numeral: fastest independent drift
-  const numY = useTransform(progress, [0, 1], [56 * intensity, -64 * intensity]);
+  const progress = useSpring(scrollYProgress, { stiffness: 100, damping: 28, restDelta: 0.001 });
+  const zoom = reduced ? 0 : compact ? 0.5 : 1;
+  const imgScale = useTransform(progress, [0, 0.5, 1], [1 + 0.1 * zoom, 1 + 0.04 * zoom, 1.0]);
+  const imgY = useTransform(progress, [0, 1], [-12 * zoom, 12 * zoom]);
 
   return (
     <motion.div
       ref={ref}
-      className={`panel-row${fromRight ? ' from-right' : ''}`}
+      className={`lux-row${fromRight ? ' from-right' : ''}`}
       initial="hidden"
       whileInView="show"
-      viewport={{ once: true, amount: compact ? 0.25 : 0.38, margin: '0px 0px -4% 0px' }}
-      variants={panelVariants(fromRight, compact, !!reduced)}
-      custom={index}
-      style={{ willChange: 'transform' }}
+      /* fires as soon as ~8% of the card crosses the fold — the slot
+         is never visible while empty */
+      viewport={{ once: true, amount: 0.08 }}
+      variants={cardVariants(fromRight, compact, !!reduced)}
     >
       <TransitionLink
         href={`/collections/${cat.slug}`}
-        className="panel"
+        className="lux-card"
         aria-label={`${cat.name} — view collection`}
       >
-        <motion.div className="panel-media" variants={reduced ? undefined : mediaClip}>
-          {/* Showroom still reused from the frame sequences — no new assets. */}
+        {/* decorative frame layers */}
+        <span className="lux-inner-frame" aria-hidden="true" />
+        <span className="lux-corners" aria-hidden="true" />
+
+        <div className="lux-media" aria-hidden="true">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <motion.img
             src={cat.image}
@@ -154,30 +114,21 @@ function ShowroomPanel({ index }: { index: number }) {
             decoding="async"
             style={{ objectPosition: cat.focus, scale: imgScale, y: imgY }}
           />
-          <span className="panel-veil" aria-hidden="true" />
-          <motion.span className="panel-num" aria-hidden="true" style={{ y: numY }}>
-            {String(index + 1).padStart(2, '0')}
-          </motion.span>
-        </motion.div>
+          <span className="lux-scrim" />
+        </div>
 
-        <motion.div className="panel-body" style={{ y: bodyY }}>
-          <motion.span className="panel-tag" variants={reduced ? undefined : softRise}>
-            {cat.tag} · {String(index + 1).padStart(2, '0')} / {String(categories.length).padStart(2, '0')}
-          </motion.span>
-          <span className="panel-title-mask">
-            <motion.h3 variants={reduced ? undefined : textMask}>{cat.name}</motion.h3>
+        <span className="lux-num">{String(index + 1).padStart(2, '0')}</span>
+        <span className="lux-tag">{cat.tag}</span>
+
+        <span className="lux-info">
+          <span className="lux-text">
+            <h3>{cat.name}</h3>
+            <span className="lux-sub">{cat.tagline}</span>
           </span>
-          <motion.p className="panel-tagline" variants={reduced ? undefined : softRise}>
-            {cat.tagline}
-          </motion.p>
-          <motion.span className="panel-go" variants={reduced ? undefined : softRise}>
-            View Collection
-            <span className="panel-arrow" aria-hidden="true">
-              <i>→</i>
-              <i>→</i>
-            </span>
-          </motion.span>
-        </motion.div>
+          <span className="lux-arrow" aria-hidden="true">
+            →
+          </span>
+        </span>
       </TransitionLink>
     </motion.div>
   );
@@ -197,9 +148,7 @@ export function CategoryCards() {
           <motion.div variants={fadeRise}>
             <div className="eyebrow">The Collections</div>
             <h2>
-              Ten worlds of
-              <br />
-              <span className="serif-italic">luxury living</span>
+              Ten worlds of <span className="serif-italic">luxury living</span>
             </h2>
           </motion.div>
           <motion.span className="count" variants={fadeRise}>
@@ -207,9 +156,9 @@ export function CategoryCards() {
           </motion.span>
         </motion.div>
 
-        <div className="panel-stack">
+        <div className="lux-stack">
           {categories.map((cat, i) => (
-            <ShowroomPanel key={cat.slug} index={i} />
+            <CollectionCard key={cat.slug} index={i} />
           ))}
         </div>
       </div>

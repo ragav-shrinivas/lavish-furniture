@@ -336,123 +336,168 @@ a.navlink:hover::after,a.navlink:focus-visible::after{transform:scaleX(1);transf
 }
 
 /* ============================================================
-   SHOWROOM PANELS — cinematic collection discovery
+   COLLECTION CARDS — unified clickable luxury objects
+   Stable layout · motion lives inside the clipped media
 ============================================================ */
 .showcase{background:var(--ivory);overflow:hidden;}
 .showcase-head{
   display:flex;align-items:flex-end;justify-content:space-between;
-  gap:24px;flex-wrap:wrap;margin-bottom:clamp(48px,7vw,96px);
+  gap:20px;flex-wrap:wrap;margin-bottom:clamp(36px,5vw,64px);
 }
 .showcase-head h2{
   font-family:var(--font-display),serif;font-weight:500;color:var(--walnut);
-  font-size:clamp(2.2rem,5.2vw,4.4rem);line-height:1.02;margin-top:16px;
+  font-size:clamp(2rem,4.8vw,4.2rem);line-height:1.06;margin-top:14px;
+  max-width:16ch;
 }
 .showcase-head .count{
   font-family:var(--font-ui),sans-serif;text-transform:uppercase;letter-spacing:.26em;
-  font-size:.62rem;color:var(--walnut-soft);padding-bottom:10px;
+  font-size:.6rem;color:var(--walnut-soft);padding-bottom:10px;
 }
 
-.panel-stack{
+.lux-stack{
   display:flex;flex-direction:column;
-  gap:clamp(64px,12vh,140px);
-  perspective:1400px; /* gives the entrance rotateY real depth */
+  gap:clamp(24px,4vw,56px);
+  perspective:1400px;
 }
-.panel-row{display:flex;justify-content:flex-start;}
-.panel-row.from-right{justify-content:flex-end;}
+.lux-row{display:flex;justify-content:flex-start;}
+.lux-row.from-right{justify-content:flex-end;}
 
-.panel{
-  display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);
-  align-items:center;gap:clamp(24px,4vw,64px);
-  width:min(1080px,100%);
-}
-.panel-row.from-right .panel{
-  grid-template-columns:minmax(0,5fr) minmax(0,7fr);
-}
-.panel-row.from-right .panel-media{order:2;}
-.panel-row.from-right .panel-body{order:1;text-align:right;align-items:flex-end;}
-
-.panel-media{
-  position:relative;overflow:hidden;border-radius:var(--radius);
-  aspect-ratio:4/3;max-height:66vh;border:1px solid var(--line);
+/* ── the card: one bounded, wholly clickable surface ── */
+.lux-card{
+  position:relative;display:block;overflow:hidden;
+  width:min(880px,100%);
+  aspect-ratio:16/10;
+  border-radius:3px;
+  border:1px solid rgba(194,161,95,.55);
+  background:var(--walnut);
+  cursor:pointer;
+  box-shadow:0 1px 0 rgba(255,255,255,.6),0 18px 44px -26px rgba(78,61,44,.35);
+  transition:transform .45s var(--ease),box-shadow .5s var(--ease),border-color .4s var(--ease);
   transform:translateZ(0);
+  -webkit-tap-highlight-color:transparent;
 }
-.panel-media img{
-  width:100%;height:112%;object-fit:cover;margin-top:-6%;
+.lux-card:hover{
+  transform:translateY(-6px);
+  border-color:var(--champagne);
+  box-shadow:0 1px 0 rgba(255,255,255,.6),var(--shadow-lift);
+}
+.lux-card:active{transform:translateY(-1px) scale(.988);transition-duration:.12s;}
+.lux-card:focus-visible{outline:2px solid var(--bronze);outline-offset:4px;}
+
+/* inner hairline frame — second layer of the double border */
+.lux-inner-frame{
+  position:absolute;inset:10px;z-index:4;pointer-events:none;
+  border:1px solid rgba(253,248,239,.32);border-radius:2px;
+  transition:inset .4s var(--ease),border-color .4s var(--ease);
+}
+.lux-card:hover .lux-inner-frame,
+.lux-card:active .lux-inner-frame{inset:7px;border-color:rgba(253,248,239,.55);}
+
+/* champagne corner marks — extend + brighten on hover/press */
+.lux-corners{
+  --ck:rgba(194,161,95,.9);
+  position:absolute;inset:10px;z-index:4;pointer-events:none;
+}
+.lux-corners::before,.lux-corners::after{
+  content:"";position:absolute;width:18px;height:18px;
+  transition:width .35s var(--ease),height .35s var(--ease);
+}
+.lux-corners::before{
+  top:-1px;left:-1px;
+  border-top:1.5px solid var(--ck);border-left:1.5px solid var(--ck);
+}
+.lux-corners::after{
+  bottom:-1px;right:-1px;
+  border-bottom:1.5px solid var(--ck);border-right:1.5px solid var(--ck);
+}
+.lux-card:hover .lux-corners::before,.lux-card:hover .lux-corners::after,
+.lux-card:active .lux-corners::before,.lux-card:active .lux-corners::after{
+  width:26px;height:26px;
+}
+
+/* media viewport — all zoom/drift is clipped in here */
+.lux-media{position:absolute;inset:0;overflow:hidden;}
+.lux-media img{
+  width:100%;height:110%;object-fit:cover;margin-top:-5%;
   will-change:transform;
 }
-.panel-veil{
+.lux-scrim{
   position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(160deg,rgba(194,161,95,.12),transparent 50%,rgba(44,36,24,.22));
-  mix-blend-mode:multiply;
-  transition:opacity .6s var(--ease);
+  background:
+    linear-gradient(to top,rgba(24,15,6,.72) 0%,rgba(24,15,6,.18) 42%,transparent 60%),
+    linear-gradient(to bottom,rgba(24,15,6,.34) 0%,transparent 26%);
 }
-.panel:hover .panel-veil{opacity:.55;}
-.panel-num{
-  position:absolute;bottom:-2%;left:4%;z-index:2;
+
+/* integrated numeral + tag */
+.lux-num{
+  position:absolute;top:22px;left:24px;z-index:3;
   font-family:var(--font-display),serif;font-style:italic;font-weight:400;
-  font-size:clamp(4.5rem,10vw,9rem);line-height:1;color:rgba(253,248,239,.9);
-  text-shadow:0 4px 40px rgba(18,6,0,.35);pointer-events:none;
+  font-size:clamp(1.5rem,3vw,2.1rem);line-height:1;color:rgba(253,248,239,.95);
+  text-shadow:0 1px 14px rgba(18,6,0,.5);
   font-variant-numeric:tabular-nums;
 }
-.panel-row.from-right .panel-num{left:auto;right:4%;}
+.lux-tag{
+  position:absolute;top:30px;right:24px;z-index:3;
+  font-family:var(--font-ui),sans-serif;font-weight:700;text-transform:uppercase;
+  letter-spacing:.28em;font-size:.54rem;color:var(--champagne);
+  text-shadow:0 1px 8px rgba(18,6,0,.6);
+}
 
-.panel-body{display:flex;flex-direction:column;align-items:flex-start;}
-.panel-tag{
-  font-family:var(--font-ui),sans-serif;text-transform:uppercase;
-  letter-spacing:.28em;font-size:.58rem;color:var(--bronze);font-weight:700;
-  margin-bottom:14px;
+/* integrated info bar — title, subtitle, arrow inside the card */
+.lux-info{
+  position:absolute;left:0;right:0;bottom:0;z-index:3;
+  display:flex;align-items:flex-end;justify-content:space-between;gap:16px;
+  padding:22px 24px 20px;
 }
-.panel-title-mask{display:block;overflow:hidden;}
-.panel-title-mask h3{
-  font-family:var(--font-display),serif;font-weight:500;color:var(--walnut);
-  font-size:clamp(1.9rem,4vw,3.4rem);line-height:1.04;
-  transition:color .4s var(--ease);
+.lux-text{display:flex;flex-direction:column;min-width:0;}
+.lux-text h3{
+  font-family:var(--font-display),serif;font-weight:500;color:#FDF8EF;
+  font-size:clamp(1.5rem,2.8vw,2.4rem);line-height:1.06;
+  text-shadow:0 2px 16px rgba(18,6,0,.55);
+  transition:transform .4s var(--ease);
 }
-.panel:hover .panel-title-mask h3{color:var(--bronze);}
-.panel-tagline{
-  color:var(--walnut-soft);font-size:1rem;margin-top:14px;max-width:380px;
+.lux-card:hover .lux-text h3{transform:translateX(4px);}
+.lux-sub{
+  margin-top:6px;color:rgba(253,248,236,.78);font-size:.88rem;
+  text-shadow:0 1px 10px rgba(18,6,0,.55);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.panel-go{
-  display:inline-flex;align-items:center;gap:12px;margin-top:26px;
-  font-family:var(--font-ui),sans-serif;font-weight:600;text-transform:uppercase;
-  letter-spacing:.18em;font-size:.66rem;color:var(--walnut);
-  position:relative;padding-bottom:6px;
+.lux-arrow{
+  flex:none;width:46px;height:46px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid rgba(253,248,239,.55);color:#FDF8EF;font-size:1rem;
+  background:rgba(24,15,6,.28);backdrop-filter:blur(6px);
+  transition:background .35s var(--ease),color .35s var(--ease),
+    border-color .35s var(--ease),transform .45s var(--ease);
 }
-.panel-go::after{
-  content:"";position:absolute;left:0;bottom:0;height:1px;width:100%;
-  background:var(--bronze);transform:scaleX(0);transform-origin:right;
-  transition:transform .5s var(--ease);
+.lux-card:hover .lux-arrow{
+  background:var(--champagne);border-color:var(--champagne);color:#fff;
+  transform:rotate(-45deg);
 }
-.panel:hover .panel-go::after{transform:scaleX(1);transform-origin:left;}
-.panel-arrow{
-  position:relative;width:1.2em;height:1em;overflow:hidden;display:inline-block;
+.lux-card:active .lux-arrow{
+  background:var(--champagne);border-color:var(--champagne);color:#fff;
 }
-.panel-arrow i{
-  position:absolute;inset:0;font-style:normal;
-  transition:transform .45s var(--ease);
-}
-.panel-arrow i:last-child{transform:translateX(-130%);}
-.panel:hover .panel-arrow i:first-child{transform:translateX(130%);}
-.panel:hover .panel-arrow i:last-child{transform:translateX(0);}
 
-/* image zoom on hover rides on top of the scroll-linked scale */
-.panel-media{transition:box-shadow .6s var(--ease);}
-.panel:hover .panel-media{box-shadow:var(--shadow-lift);}
-
-/* mobile: deliberate stacked composition, tactile press */
+/* ── mobile: compact immersive portrait card, tight rhythm ── */
 @media(max-width:899px){
-  .panel-stack{gap:clamp(52px,9vh,84px);perspective:none;}
-  .panel,.panel-row.from-right .panel{
-    grid-template-columns:1fr;gap:18px;width:100%;
+  .showcase-head{margin-bottom:clamp(28px,7vw,40px);}
+  .lux-stack{gap:clamp(20px,5.5vw,32px);perspective:none;}
+  .lux-row,.lux-row.from-right{justify-content:center;}
+  .lux-card{
+    width:100%;
+    aspect-ratio:4/5;
+    max-height:66vh;
   }
-  .panel-row.from-right .panel-media{order:0;}
-  .panel-row.from-right .panel-body{order:1;text-align:left;align-items:flex-start;}
-  .panel-media{aspect-ratio:5/4;max-height:52vh;}
-  .panel-num{font-size:clamp(3.4rem,16vw,5rem);}
-  .panel-tagline{font-size:.94rem;margin-top:10px;}
-  .panel-go{margin-top:18px;min-height:44px;align-items:center;}
-  .panel:active .panel-media{box-shadow:var(--shadow-soft);}
-  .panel:active .panel-title-mask h3{color:var(--bronze);}
+  .lux-num{top:16px;left:18px;}
+  .lux-tag{top:23px;right:18px;}
+  .lux-info{padding:16px 18px 16px;}
+  .lux-arrow{width:44px;height:44px;}
+  .lux-inner-frame{inset:8px;}
+  .lux-corners{inset:8px;}
+}
+@media(max-width:400px){
+  .lux-card{aspect-ratio:3/4;}
+  .lux-sub{font-size:.82rem;}
 }
 
 /* ============================================================
