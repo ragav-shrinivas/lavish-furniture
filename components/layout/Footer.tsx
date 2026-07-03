@@ -7,28 +7,26 @@ export function Footer() {
     <footer className="foot">
       <div className="foot-top">
         <div className="foot-brand">LAVISH</div>
-        <div className="foot-links">
+        <nav className="foot-links" aria-label="Footer">
           {links.map((l) => (
             <a key={l.href} href={l.href}>
               {l.label}
             </a>
           ))}
-        </div>
+          <a href={siteConfig.instagram} target="_blank" rel="noopener">
+            Instagram
+          </a>
+          <a href={siteConfig.maps} target="_blank" rel="noopener">
+            Directions
+          </a>
+        </nav>
       </div>
 
-      {/* Google Reviews CTA */}
-      <div style={{ marginTop: 50, display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
-        <a
-          className="btn-reviews"
-          href={siteConfig.googleReviews}
-          target="_blank"
-          rel="noopener"
-        >
+      <div className="foot-mid">
+        <a className="btn-reviews" href={siteConfig.googleReviews} target="_blank" rel="noopener">
           <em className="star">★</em> See 1100+ Google Reviews
         </a>
-        <span style={{ fontFamily: 'var(--font-ui)', fontSize: '.62rem', letterSpacing: '.16em', textTransform: 'uppercase', color: 'var(--walnut-soft)' }}>
-          Trusted since 1998 · Velachery, Chennai
-        </span>
+        <span className="note">Trusted since 1998 · Velachery, Chennai</span>
       </div>
 
       <div className="foot-bottom">

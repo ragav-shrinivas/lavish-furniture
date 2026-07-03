@@ -6,10 +6,12 @@ import {
   useScroll,
   useSpring,
   useTransform,
+  useReducedMotion,
   type MotionValue,
 } from 'framer-motion';
 import type { Overlay, SequenceConfig } from '@/lib/frames';
 import { MagneticButton } from '@/components/ui/MagneticButton';
+import { EASE } from '@/lib/motion';
 
 type IntroMark = {
   eyebrow: string;
@@ -18,19 +20,28 @@ type IntroMark = {
   actions?: { label: React.ReactNode; href: string; ghost?: boolean; external?: boolean }[];
 };
 
-/* ── single overlay, drives its own opacity + slide from scroll progress ── */
+/* ── single overlay: opacity + directional slide driven by scroll ── */
 function HeroOverlay({ o, progress }: { o: Overlay; progress: MotionValue<number> }) {
   const [a, b] = o.range;
   const opacity = useTransform(progress, [a - 0.05, a, b, b + 0.05], [0, 1, 1, 0]);
   const x = useTransform(
     progress,
-    [a - 0.06, a],
-    o.anim === 'left' ? ['-9vw', '0vw'] : o.anim === 'right' ? ['9vw', '0vw'] : ['0vw', '0vw'],
+    [a - 0.07, a, b, b + 0.07],
+    o.anim === 'left'
+      ? ['-7vw', '0vw', '0vw', '3vw']
+      : o.anim === 'right'
+        ? ['7vw', '0vw', '0vw', '-3vw']
+        : ['0vw', '0vw', '0vw', '0vw'],
   );
-  const y = useTransform(progress, [a - 0.06, a], o.anim === 'up' ? [60, 0] : [0, 0]);
+  const y = useTransform(
+    progress,
+    [a - 0.07, a, b, b + 0.07],
+    o.anim === 'up' ? [64, 0, 0, -40] : [0, 0, 0, -24],
+  );
+  const scale = useTransform(progress, [a - 0.07, a], [0.97, 1]);
 
   return (
-    <motion.div className="seq-overlay" style={{ opacity, x, y }}>
+    <motion.div className="seq-overlay" style={{ opacity, x, y, scale }}>
       <div className="eyebrow">{o.eyebrow}</div>
       <h2>{o.title}</h2>
       <p>{o.subtitle}</p>
@@ -38,6 +49,21 @@ function HeroOverlay({ o, progress }: { o: Overlay; progress: MotionValue<number
   );
 }
 
+/**
+ * Scroll-scrubbed frame-sequence hero.
+ *
+ * The source frames are portrait phone video (~480×850), so:
+ *  - portrait viewports get a full-bleed cover draw (native fit)
+ *  - landscape viewports get a cinematic two-layer draw: a soft
+ *    upscaled backdrop plus a sharp contained portrait panel
+ *
+ * Loading strategy:
+ *  - nothing loads until the section is within 1.5 viewports
+ *  - frames arrive in stride waves (every 8th → 4th → 2nd → all)
+ *    so scrubbing works within seconds; nearest-frame rendering
+ *    fills the gaps until the full set lands
+ *  - small screens stop at stride 2 (half the frames, half the memory)
+ */
 export function FrameSequenceHero({
   config,
   intro,
@@ -51,21 +77,29 @@ export function FrameSequenceHero({
   const imagesRef = useRef<(HTMLImageElement | undefined)[]>([]);
   const [anyLoaded, setAnyLoaded] = useState(false);
   const [bufferReady, setBufferReady] = useState(false);
+  const [nearViewport, setNearViewport] = useState(false);
+  const progressBarRef = useRef<HTMLElement | null>(null);
+  const reducedMotion = useReducedMotion();
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,
     offset: ['start start', 'end end'],
   });
 
-  const smooth = useSpring(scrollYProgress, { stiffness: 80, damping: 25, restDelta: 0.0005 });
+  const smoothSpring = useSpring(scrollYProgress, {
+    stiffness: 120,
+    damping: 30,
+    restDelta: 0.0004,
+  });
+  // With reduced motion, track scroll directly (no spring overshoot).
+  const smooth = reducedMotion ? scrollYProgress : smoothSpring;
 
   // intro mark fade/lift (hero 1 only)
   const introOpacity = useTransform(scrollYProgress, [0, 0.16], [1, 0]);
   const introY = useTransform(scrollYProgress, [0, 0.18], [0, -70]);
   const cueOpacity = useTransform(scrollYProgress, [0, 0.06], [1, 0]);
 
-  // First hero (has intro): open on the calm sand frame, then fade the video in
-  // after a little scroll, holding the sequence at frame 1 until it's visible.
+  // Hold the sequence on frame 1 during the intro, then scrub.
   const FRAME_START = intro ? 0.09 : 0;
   const canvasOpacity = useTransform(
     scrollYProgress,
@@ -88,54 +122,138 @@ export function FrameSequenceHero({
     if (!ctx) return;
 
     const total = imgs.length;
-    let idx = Math.min(Math.max(Math.round(frac * (total - 1)), 0), total - 1);
+    const idx = Math.min(Math.max(Math.round(frac * (total - 1)), 0), total - 1);
     let img = imgs[idx];
     if (!img) {
+      // nearest-frame fallback while waves are still loading
       for (let d = 1; d < total; d++) {
         if (imgs[idx - d]) { img = imgs[idx - d]; break; }
         if (imgs[idx + d]) { img = imgs[idx + d]; break; }
       }
     }
-    if (!img || !img.complete) return;
+    if (!img || !img.complete || !img.naturalWidth) return;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const W = sticky.clientWidth, H = sticky.clientHeight;
-    if (canvas.width !== W * dpr || canvas.height !== H * dpr) {
-      canvas.width = W * dpr; canvas.height = H * dpr;
-      canvas.style.width = `${W}px`; canvas.style.height = `${H}px`;
+    const W = sticky.clientWidth;
+    const H = sticky.clientHeight;
+    const dpr = Math.min(window.devicePixelRatio || 1, W < 768 ? 1.5 : 2);
+    if (canvas.width !== Math.round(W * dpr) || canvas.height !== Math.round(H * dpr)) {
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+      canvas.style.width = `${W}px`;
+      canvas.style.height = `${H}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
-    const ir = img.naturalWidth / img.naturalHeight, cr = W / H;
-    let dw: number, dh: number, dx: number, dy: number;
-    if (ir > cr) { dh = H; dw = H * ir; dx = (W - dw) / 2; dy = 0; }
-    else { dw = W; dh = W / ir; dx = 0; dy = (H - dh) / 2; }
+
+    const ir = img.naturalWidth / img.naturalHeight;
+    const cr = W / H;
+
     ctx.clearRect(0, 0, W, H);
-    ctx.drawImage(img, dx, dy, dw, dh);
+
+    if (cr <= ir * 1.35) {
+      /* Portrait-ish viewport: classic cover draw. */
+      let dw: number, dh: number, dx: number, dy: number;
+      if (ir > cr) { dh = H; dw = H * ir; dx = (W - dw) / 2; dy = 0; }
+      else { dw = W; dh = W / ir; dx = 0; dy = (H - dh) / 2; }
+      ctx.drawImage(img, dx, dy, dw, dh);
+    } else {
+      /* Wide viewport: soft cover backdrop + sharp contained panel. */
+      const bw = W;
+      const bh = W / ir;
+      ctx.save();
+      ctx.filter = 'saturate(1.05)';
+      ctx.globalAlpha = 0.999;
+      ctx.drawImage(img, 0, (H - bh) / 2, bw, bh);
+      // warm veil so the upscaled backdrop reads as atmosphere, not content
+      ctx.filter = 'none';
+      ctx.fillStyle = 'rgba(30,19,8,0.5)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+
+      const ph = H * 0.94;
+      const pw = ph * ir;
+      const px = (W - pw) / 2;
+      const py = (H - ph) / 2;
+      ctx.save();
+      ctx.shadowColor = 'rgba(10,5,0,0.55)';
+      ctx.shadowBlur = 60;
+      ctx.shadowOffsetY = 18;
+      ctx.drawImage(img, px, py, pw, ph);
+      ctx.restore();
+    }
   }, []);
 
-  /* preload */
+  /* lazy start: begin loading only when the section approaches */
   useEffect(() => {
-    const imgs: (HTMLImageElement | undefined)[] = new Array(config.count);
-    imagesRef.current = imgs;
-    let valid = 0, done = 0, first = true;
+    const el = sectionRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setNearViewport(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: '150% 0px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
-    for (let i = 0; i < config.count; i++) {
+  /* progressive stride-wave preload */
+  useEffect(() => {
+    if (!nearViewport) return;
+    const total = config.count;
+    const imgs: (HTMLImageElement | undefined)[] = new Array(total);
+    imagesRef.current = imgs;
+
+    const isSmall = typeof window !== 'undefined' && window.innerWidth < 768;
+    const finalStride = isSmall ? 2 : 1;
+
+    // Build load order: stride 8 first, then fill 4, 2, (1 on desktop).
+    const order: number[] = [];
+    const seen = new Set<number>();
+    for (const stride of [8, 4, 2, 1]) {
+      if (stride < finalStride) break;
+      for (let i = 0; i < total; i += stride) {
+        if (!seen.has(i)) { seen.add(i); order.push(i); }
+      }
+    }
+
+    let loaded = 0;
+    const firstWaveTarget = Math.ceil(total / 8);
+    let cancelled = false;
+    let cursor = 0;
+    const CONCURRENCY = 10;
+
+    const pump = () => {
+      if (cancelled || cursor >= order.length) return;
+      const i = order[cursor++];
       const img = new Image();
       img.decoding = 'async';
       const finish = (ok: boolean) => {
-        if (ok) { imgs[i] = img; valid++; }
-        done++;
-        if (first && valid > 0) { first = false; setAnyLoaded(true); draw(0); }
-        if (valid >= Math.min(8, config.count)) setBufferReady(true);
-        if (done === config.count) setBufferReady(true);
+        if (cancelled) return;
+        if (ok) imgs[i] = img;
+        loaded++;
+        if (loaded === 1) {
+          setAnyLoaded(true);
+          draw(0);
+        }
+        if (loaded >= firstWaveTarget) setBufferReady(true);
+        if (progressBarRef.current) {
+          progressBarRef.current.style.transform = `scaleX(${loaded / order.length})`;
+        }
+        pump();
       };
       img.onload = () => finish(true);
       img.onerror = () => finish(false);
       img.src = src(i);
-    }
-  }, [config.count, src, draw]);
+    };
+    for (let k = 0; k < CONCURRENCY; k++) pump();
 
-  /* scroll → frame (hold on frame 1 during the intro, then scrub) */
+    return () => { cancelled = true; };
+  }, [nearViewport, config.count, src, draw]);
+
+  /* scroll → frame */
   useEffect(() => {
     if (!anyLoaded) return;
     const remap = (p: number) =>
@@ -145,38 +263,84 @@ export function FrameSequenceHero({
     return () => unsub();
   }, [smooth, anyLoaded, draw, FRAME_START]);
 
-  /* resize */
+  /* redraw on layout changes */
   useEffect(() => {
-    const onResize = () => {
+    const sticky = stickyRef.current;
+    if (!sticky) return;
+    const ro = new ResizeObserver(() => {
       const p = smooth.get();
       draw(FRAME_START <= 0 ? p : Math.max(0, (p - FRAME_START) / (1 - FRAME_START)));
-    };
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    });
+    ro.observe(sticky);
+    return () => ro.disconnect();
   }, [smooth, draw, FRAME_START]);
 
   return (
-    <section ref={sectionRef} id={config.id} className={`seq-section${intro ? ' has-intro' : ''}`}>
+    <section
+      ref={sectionRef}
+      id={config.id}
+      className={`seq-section${intro ? ' has-intro' : ''}`}
+      style={{ position: 'relative' }}
+      aria-label={intro ? 'Lavish Furniture showroom film' : 'Carved furniture film'}
+    >
       <div ref={stickyRef} className="seq-sticky">
-        <div className="seq-fallback" />
-        <motion.canvas ref={canvasRef} className="seq-canvas" style={{ opacity: canvasOpacity }} />
-        <div className="seq-scrim" />
+        <div className="seq-fallback" aria-hidden="true" />
+        <motion.canvas
+          ref={canvasRef}
+          className="seq-canvas"
+          style={{ opacity: canvasOpacity }}
+          aria-hidden="true"
+        />
+        <div className="seq-scrim" aria-hidden="true" />
 
-        <div className={`seq-loading${bufferReady ? ' hide' : ''}`}>{config.loadingText}</div>
+        <div className={`seq-loading${bufferReady ? ' hide' : ''}`} aria-hidden="true">
+          <span>{config.loadingText}</span>
+          <span className="bar">
+            <i ref={(el) => { progressBarRef.current = el; }} style={{ transform: 'scaleX(0)' }} />
+          </span>
+        </div>
 
         {intro && (
           <motion.div className="hero-mark" style={{ opacity: introOpacity, y: introY }}>
-            <div className="eyebrow">{intro.eyebrow}</div>
-            <h1>{intro.title}</h1>
-            <p>{intro.subtitle}</p>
+            <motion.div
+              initial={reducedMotion ? false : { opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.9, ease: EASE, delay: 0.15 }}
+            >
+              <div className="eyebrow">{intro.eyebrow}</div>
+            </motion.div>
+            <motion.h1
+              initial={reducedMotion ? false : { opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1.2, ease: EASE, delay: 0.3 }}
+            >
+              {intro.title}
+            </motion.h1>
+            <motion.p
+              initial={reducedMotion ? false : { opacity: 0, y: 28 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.9, ease: EASE, delay: 0.55 }}
+            >
+              {intro.subtitle}
+            </motion.p>
             {intro.actions && (
-              <div className="actions">
+              <motion.div
+                className="actions"
+                initial={reducedMotion ? false : { opacity: 0, y: 22 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.9, ease: EASE, delay: 0.75 }}
+              >
                 {intro.actions.map((act, i) => (
-                  <MagneticButton key={i} href={act.href} className={act.ghost ? 'ghost' : undefined} external={act.external}>
+                  <MagneticButton
+                    key={i}
+                    href={act.href}
+                    className={act.ghost ? 'ghost on-dark' : undefined}
+                    external={act.external}
+                  >
                     {act.label}
                   </MagneticButton>
                 ))}
-              </div>
+              </motion.div>
             )}
           </motion.div>
         )}
@@ -188,7 +352,7 @@ export function FrameSequenceHero({
         </div>
 
         {intro && (
-          <motion.div className="scroll-cue" style={{ opacity: cueOpacity }}>
+          <motion.div className="scroll-cue" style={{ opacity: cueOpacity }} aria-hidden="true">
             <span>Scroll to explore</span>
             <i />
           </motion.div>

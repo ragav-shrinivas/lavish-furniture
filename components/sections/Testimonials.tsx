@@ -1,34 +1,39 @@
-import { Reveal } from '@/components/ui/Reveal';
-import { siteConfig } from '@/lib/config';
+'use client';
 
+import { motion } from 'framer-motion';
+import { siteConfig } from '@/lib/config';
+import { fadeRise, stagger, viewportOnce, STAGGER } from '@/lib/motion';
+
+/**
+ * Testimonials — a single editorial pull-quote carries more weight
+ * than a grid of boxes. The verified proof lives one tap away on Google.
+ */
 export function Testimonials() {
   return (
-    <section className="block" id="testimonials">
-      <div className="wrap" style={{ textAlign: 'center' }}>
-        <Reveal className="section-head center">
-          <div className="eyebrow">1100+ Reviews</div>
-          <h3>
-            Loved by <span className="serif-italic">thousands of homes</span>
-          </h3>
-          <p>
-            Our customers say it best. Read verified reviews from across Chennai on Google — and see
-            why families have trusted Lavish Furniture for over 26 years.
-          </p>
-        </Reveal>
-
-        <Reveal>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
-            <a
-              className="btn-reviews"
-              href={siteConfig.googleReviews}
-              target="_blank"
-              rel="noopener"
-            >
-              <em className="star">★</em> Read 1100+ Google Reviews
-            </a>
-          </div>
-        </Reveal>
-      </div>
+    <section className="block testimonial" id="testimonials">
+      <motion.div
+        className="wrap testimonial-inner"
+        variants={stagger(STAGGER.loose)}
+        initial="hidden"
+        whileInView="show"
+        viewport={viewportOnce}
+      >
+        <motion.span className="quote-mark" aria-hidden="true" variants={fadeRise}>
+          &ldquo;
+        </motion.span>
+        <motion.blockquote variants={fadeRise}>
+          Trusted by thousands of Chennai homes for over 26 years — read what
+          our customers say about the showroom, the craftsmanship and the care.
+        </motion.blockquote>
+        <motion.div className="attribution" variants={fadeRise}>
+          1100+ Verified Reviews · Google
+        </motion.div>
+        <motion.div className="actions" variants={fadeRise}>
+          <a className="btn-reviews" href={siteConfig.googleReviews} target="_blank" rel="noopener">
+            <em className="star">★</em> Read 1100+ Google Reviews
+          </a>
+        </motion.div>
+      </motion.div>
     </section>
   );
 }

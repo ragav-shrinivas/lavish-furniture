@@ -1,83 +1,101 @@
 'use client';
 
-import { useRef } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { categories } from '@/lib/categories';
+import { EASE, DUR, fadeRise, stagger, viewportOnce } from '@/lib/motion';
 
-const EASE = [0.16, 1, 0.3, 1] as const;
-
-function CategoryCard({
-  index,
-  fromRight,
-}: {
-  index: number;
-  fromRight: boolean;
-}) {
+/**
+ * Collection Index — an editorial discovery list.
+ * Each collection is a full-width row: index numeral, oversized serif
+ * title, tagline, a portrait showroom still (desktop), and a rotating
+ * arrow. Rows rise out of a mask in sequence; imagery settles from a
+ * gentle overscale. Business order is preserved 1→10.
+ */
+function IndexRow({ index }: { index: number }) {
   const cat = categories[index];
-  const ref = useRef<HTMLDivElement>(null);
-  const MAX = 8;
-
-  const onMove = (e: React.MouseEvent) => {
-    const el = ref.current;
-    if (!el || !window.matchMedia('(pointer:fine)').matches) return;
-    const r = el.getBoundingClientRect();
-    const px = (e.clientX - r.left) / r.width - 0.5;
-    const py = (e.clientY - r.top) / r.height - 0.5;
-    el.style.transform = `perspective(1100px) rotateY(${px * MAX}deg) rotateX(${-py * MAX}deg) translateY(-8px) scale(1.015)`;
-  };
-  const reset = () => {
-    if (ref.current) ref.current.style.transform = '';
-  };
+  const reducedMotion = useReducedMotion();
 
   return (
     <motion.div
-      className={`cat-row ${fromRight ? 'right' : 'left'}`}
-      initial={{ opacity: 0, x: fromRight ? 90 : -90 }}
-      whileInView={{ opacity: 1, x: 0 }}
-      viewport={{ once: false, amount: 0.4 }}
-      transition={{ duration: 1, ease: EASE }}
+      className="coll-row-mask"
+      initial={reducedMotion ? undefined : 'hidden'}
+      whileInView="show"
+      viewport={{ once: true, amount: 0.3, margin: '0px 0px -6% 0px' }}
     >
-      <Link href={`/collections/${cat.slug}`} className="cat-card-link">
-        <div className="cat-card float" ref={ref} onMouseMove={onMove} onMouseLeave={reset}>
-          <div className="cat-card-media" style={{ backgroundImage: cat.gradient }}>
-            <span className="cat-card-num">{String(index + 1).padStart(2, '0')}</span>
-          </div>
-          <div className="cat-card-body">
-            <span className="tag">{cat.tag}</span>
+      <motion.div
+        variants={{
+          hidden: { opacity: 0, y: '60%' },
+          show: {
+            opacity: 1,
+            y: '0%',
+            transition: { duration: DUR.reveal, ease: EASE, delay: (index % 3) * 0.08 },
+          },
+        }}
+      >
+        <Link
+          href={`/collections/${cat.slug}`}
+          className="coll-row"
+          aria-label={`${cat.name} — view collection`}
+        >
+          <span className="coll-num" aria-hidden="true">
+            {String(index + 1).padStart(2, '0')}
+          </span>
+
+          <span className="coll-name">
+            <span className="coll-tag">{cat.tag}</span>
             <h3>{cat.name}</h3>
-            <p>{cat.tagline}</p>
-            <span className="cat-go">
-              View Collection <span className="ar">→</span>
-            </span>
-          </div>
-        </div>
-      </Link>
+            <span className="tagline">{cat.tagline}</span>
+          </span>
+
+          <span className="coll-media" aria-hidden="true">
+            {/* Showroom still reused from the frame sequences — no new assets. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={cat.image}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              style={{ objectPosition: cat.focus }}
+            />
+          </span>
+
+          <span className="coll-arrow" aria-hidden="true">
+            →
+          </span>
+        </Link>
+      </motion.div>
     </motion.div>
   );
 }
 
 export function CategoryCards() {
   return (
-    <section className="block cat-section" id="categories">
+    <section className="block coll-index" id="categories">
       <div className="wrap">
         <motion.div
-          className="section-head center"
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: false, amount: 0.6 }}
-          transition={{ duration: 1, ease: EASE }}
+          className="coll-head"
+          variants={stagger(0.12)}
+          initial="hidden"
+          whileInView="show"
+          viewport={viewportOnce}
         >
-          <div className="eyebrow">Explore The Collections</div>
-          <h3>
-            Ten worlds of <span className="serif-italic">luxury living</span>
-          </h3>
-          <p>Scroll to discover each collection — every piece crafted for elegant, modern homes.</p>
+          <motion.div variants={fadeRise}>
+            <div className="eyebrow">The Collections</div>
+            <h2>
+              Ten worlds of
+              <br />
+              <span className="serif-italic">luxury living</span>
+            </h2>
+          </motion.div>
+          <motion.span className="count" variants={fadeRise}>
+            10 Collections · Velachery Showroom
+          </motion.span>
         </motion.div>
 
-        <div className="cat-stack">
+        <div className="coll-list">
           {categories.map((_, i) => (
-            <CategoryCard key={i} index={i} fromRight={i % 2 === 1} />
+            <IndexRow key={categories[i].slug} index={i} />
           ))}
         </div>
       </div>

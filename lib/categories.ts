@@ -6,12 +6,21 @@ export type Category = {
   description: string;
   highlights: string[];
   gradient: string;
+  /** Showroom still reused from the existing frame sequences. */
+  image: string;
+  /** CSS object-position focal point for the portrait still. */
+  focus: string;
 };
+
+const STARTING = '/frames/starting/startingherovideo';
+const CARVED = '/frames/carved';
 
 /* Order matters — this is the homepage reveal order. */
 export const categories: Category[] = [
   {
     slug: 'carving-sofas',
+    image: `${CARVED}/ezgif-frame-230.png`,
+    focus: '50% 62%',
     name: 'Carving Sofas',
     tag: 'Heritage',
     tagline: 'Hand-carved sofa sets that command a room',
@@ -22,6 +31,8 @@ export const categories: Category[] = [
   },
   {
     slug: 'luxury-sofas',
+    image: `${STARTING}/ezgif-frame-140.png`,
+    focus: '50% 55%',
     name: 'Luxury Sofas',
     tag: 'Living',
     tagline: 'Contemporary comfort, impeccably tailored',
@@ -32,6 +43,8 @@ export const categories: Category[] = [
   },
   {
     slug: 'recliners',
+    image: `${STARTING}/ezgif-frame-100.png`,
+    focus: '50% 68%',
     name: 'Recliners',
     tag: 'Comfort',
     tagline: 'Effortless relaxation, engineered beautifully',
@@ -42,6 +55,8 @@ export const categories: Category[] = [
   },
   {
     slug: 'bedroom',
+    image: `${CARVED}/ezgif-frame-100.png`,
+    focus: '50% 55%',
     name: 'Bedroom Collections',
     tag: 'Bedroom',
     tagline: 'Restful luxury, designed end to end',
@@ -52,6 +67,8 @@ export const categories: Category[] = [
   },
   {
     slug: 'dining-sets',
+    image: `${STARTING}/ezgif-frame-020.png`,
+    focus: '50% 60%',
     name: 'Dining Sets',
     tag: 'Dining',
     tagline: 'Gather in elegant comfort',
@@ -62,6 +79,8 @@ export const categories: Category[] = [
   },
   {
     slug: 'office-furniture',
+    image: `${STARTING}/ezgif-frame-060.png`,
+    focus: '50% 60%',
     name: 'Office Furniture',
     tag: 'Workspace',
     tagline: 'Executive presence, everyday comfort',
@@ -72,6 +91,8 @@ export const categories: Category[] = [
   },
   {
     slug: 'wardrobes',
+    image: `${CARVED}/ezgif-frame-215.png`,
+    focus: '50% 50%',
     name: 'Wardrobes',
     tag: 'Storage',
     tagline: 'Luxury storage, beautifully organised',
@@ -82,6 +103,8 @@ export const categories: Category[] = [
   },
   {
     slug: 'luxury-chairs',
+    image: `${CARVED}/ezgif-frame-090.png`,
+    focus: '50% 58%',
     name: 'Luxury Chairs',
     tag: 'Accent',
     tagline: 'Sculptural seating as art',
@@ -92,6 +115,8 @@ export const categories: Category[] = [
   },
   {
     slug: 'wooden-decor',
+    image: `${CARVED}/ezgif-frame-030.png`,
+    focus: '50% 45%',
     name: 'Wooden Decor',
     tag: 'Decor',
     tagline: 'Handcrafted wooden artistry',
@@ -102,6 +127,8 @@ export const categories: Category[] = [
   },
   {
     slug: 'coffee-side-tables',
+    image: `${STARTING}/ezgif-frame-155.png`,
+    focus: '50% 62%',
     name: 'Coffee & Side Tables',
     tag: 'Tables',
     tagline: 'The details that tie a room together',

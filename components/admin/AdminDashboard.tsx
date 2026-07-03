@@ -69,9 +69,9 @@ function Tab({ label, active, onClick }: { label: string; active: boolean; onCli
         fontWeight: 600,
         textTransform: 'uppercase',
         color: active ? '#C3A063' : 'rgba(248,243,234,0.4)',
-        borderBottom: `2px solid ${active ? '#C3A063' : 'transparent'}`,
         background: 'transparent',
         border: 'none',
+        borderBottom: `2px solid ${active ? '#C3A063' : 'transparent'}`,
         cursor: 'pointer',
         fontFamily: 'system-ui, sans-serif',
       }}
