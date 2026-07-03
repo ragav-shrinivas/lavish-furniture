@@ -5,6 +5,7 @@ import { siteConfig } from '@/lib/config';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { SmoothScroll } from '@/components/layout/SmoothScroll';
+import { TransitionProvider } from '@/components/layout/PageTransition';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { localBusinessJsonLd, websiteJsonLd } from '@/lib/seo';
 
@@ -82,9 +83,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <>
             <JsonLd data={[localBusinessJsonLd(), websiteJsonLd()]} />
             <SmoothScroll>
-              <Navbar />
-              <main>{children}</main>
-              <Footer />
+              <TransitionProvider>
+                <Navbar />
+                <main>{children}</main>
+                <Footer />
+              </TransitionProvider>
             </SmoothScroll>
           </>
         )}

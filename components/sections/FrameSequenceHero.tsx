@@ -94,10 +94,19 @@ export function FrameSequenceHero({
   // With reduced motion, track scroll directly (no spring overshoot).
   const smooth = reducedMotion ? scrollYProgress : smoothSpring;
 
-  // intro mark fade/lift (hero 1 only)
+  // intro mark fade/lift (hero 1 only) — layers exit at slightly
+  // different speeds so the typography has depth as it leaves
   const introOpacity = useTransform(scrollYProgress, [0, 0.16], [1, 0]);
   const introY = useTransform(scrollYProgress, [0, 0.18], [0, -70]);
+  const introEyebrowY = useTransform(scrollYProgress, [0, 0.18], [0, -110]);
+  const introSubY = useTransform(scrollYProgress, [0, 0.18], [0, -40]);
   const cueOpacity = useTransform(scrollYProgress, [0, 0.06], [1, 0]);
+
+  // tail of the section: the whole film plane settles back and dims a
+  // touch so the next section appears to emerge from in front of it
+  const exitScale = useTransform(scrollYProgress, [0.92, 1], [1, reducedMotion ? 1 : 0.962]);
+  const exitY = useTransform(scrollYProgress, [0.92, 1], [0, reducedMotion ? 0 : -26]);
+  const exitDim = useTransform(scrollYProgress, [0.94, 1], [0, reducedMotion ? 0 : 0.28]);
 
   // Hold the sequence on frame 1 during the intro, then scrub.
   const FRAME_START = intro ? 0.09 : 0;
@@ -284,6 +293,7 @@ export function FrameSequenceHero({
       aria-label={intro ? 'Lavish Furniture showroom film' : 'Carved furniture film'}
     >
       <div ref={stickyRef} className="seq-sticky">
+        <motion.div className="seq-plane" style={{ scale: exitScale, y: exitY }}>
         <div className="seq-fallback" aria-hidden="true" />
         <motion.canvas
           ref={canvasRef}
@@ -302,12 +312,14 @@ export function FrameSequenceHero({
 
         {intro && (
           <motion.div className="hero-mark" style={{ opacity: introOpacity, y: introY }}>
-            <motion.div
-              initial={reducedMotion ? false : { opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, ease: EASE, delay: 0.15 }}
-            >
-              <div className="eyebrow">{intro.eyebrow}</div>
+            <motion.div style={{ y: introEyebrowY }}>
+              <motion.div
+                initial={reducedMotion ? false : { opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.9, ease: EASE, delay: 0.15 }}
+              >
+                <div className="eyebrow">{intro.eyebrow}</div>
+              </motion.div>
             </motion.div>
             <motion.h1
               initial={reducedMotion ? false : { opacity: 0, y: 40 }}
@@ -316,13 +328,15 @@ export function FrameSequenceHero({
             >
               {intro.title}
             </motion.h1>
-            <motion.p
-              initial={reducedMotion ? false : { opacity: 0, y: 28 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, ease: EASE, delay: 0.55 }}
-            >
-              {intro.subtitle}
-            </motion.p>
+            <motion.div style={{ y: introSubY }}>
+              <motion.p
+                initial={reducedMotion ? false : { opacity: 0, y: 28 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.9, ease: EASE, delay: 0.55 }}
+              >
+                {intro.subtitle}
+              </motion.p>
+            </motion.div>
             {intro.actions && (
               <motion.div
                 className="actions"
@@ -357,6 +371,9 @@ export function FrameSequenceHero({
             <i />
           </motion.div>
         )}
+        </motion.div>
+        {/* warm dim as the film plane recedes into the next section */}
+        <motion.div className="seq-exit-veil" style={{ opacity: exitDim }} aria-hidden="true" />
       </div>
     </section>
   );

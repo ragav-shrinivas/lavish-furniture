@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { useRef, useState } from 'react';
+import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion';
 import type { Category } from '@/lib/categories';
 import type { AdminProduct } from '@/types/admin';
 import { siteConfig } from '@/lib/config';
 import { Lightbox } from '@/components/ui/Lightbox';
+import { TransitionLink } from '@/components/layout/PageTransition';
 import { EASE, DUR, fadeRise, stagger, viewportOnce, STAGGER } from '@/lib/motion';
 
 function ProductCard({ product, index }: { product: AdminProduct; index: number }) {
@@ -72,31 +72,42 @@ export function CategoryView({
 
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
+  const heroRef = useRef<HTMLElement>(null);
+  const reducedMotion = useReducedMotion();
+  const { scrollYProgress: heroProgress } = useScroll({
+    target: heroRef,
+    offset: ['start start', 'end start'],
+  });
+  // background plane scrolls slower than the page (layered depth)
+  const heroImgY = useTransform(heroProgress, [0, 1], ['0%', reducedMotion ? '0%' : '14%']);
+  const heroTextY = useTransform(heroProgress, [0, 1], [0, reducedMotion ? 0 : -46]);
+
   return (
     <article className="cat-page">
       {/* ── IMMERSIVE HERO — showroom still + editorial identity ── */}
-      <header className="cat-hero">
-        <motion.div
-          className="cat-hero-img"
-          initial={{ scale: 1.08 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 1.6, ease: EASE }}
-          aria-hidden="true"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={category.image} alt="" style={{ objectPosition: category.focus }} />
+      <header className="cat-hero" ref={heroRef}>
+        <motion.div className="cat-hero-img" style={{ y: heroImgY }} aria-hidden="true">
+          <motion.div
+            initial={{ scale: 1.12 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 1.6, ease: EASE }}
+            style={{ height: '100%' }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={category.image} alt="" style={{ objectPosition: category.focus }} />
+          </motion.div>
         </motion.div>
 
-        <div className="cat-hero-inner">
+        <motion.div className="cat-hero-inner" style={{ y: heroTextY }}>
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: EASE, delay: 0.1 }}
           >
-            <Link href="/#categories" className="cat-back">
+            <TransitionLink href="/#categories" className="cat-back">
               <span className="back-arrow">←</span>
               All Collections
-            </Link>
+            </TransitionLink>
           </motion.div>
 
           <motion.div
@@ -126,7 +137,7 @@ export function CategoryView({
               )}
             </motion.div>
           </motion.div>
-        </div>
+        </motion.div>
       </header>
 
       {/* ── EDITORIAL INTRODUCTION ── */}
