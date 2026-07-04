@@ -220,7 +220,10 @@ a.navlink:hover::after,a.navlink:focus-visible::after{transform:scaleX(1);transf
    FRAME-SEQUENCE HERO
 ============================================================ */
 .seq-section{position:relative;width:100%;height:460vh;background:var(--ivory);}
-.seq-sticky{position:sticky;top:0;height:100svh;width:100%;overflow:hidden;}
+/* dvh (with vh fallback): the film must track Android Chrome's dynamic
+   viewport — a 100svh stage leaves a toolbar-height cream band under the
+   hero the moment the browser chrome collapses on the first swipe */
+.seq-sticky{position:sticky;top:0;height:100vh;height:100dvh;width:100%;overflow:hidden;}
 .seq-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
 .seq-fallback{
   position:absolute;inset:0;
