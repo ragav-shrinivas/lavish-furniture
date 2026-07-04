@@ -336,169 +336,172 @@ a.navlink:hover::after,a.navlink:focus-visible::after{transform:scaleX(1);transf
 }
 
 /* ============================================================
-   COLLECTION CARDS — unified clickable luxury objects
-   Stable layout · motion lives inside the clipped media
+   COLLECTION DECK — 3D stacked luxury plates
+   Sticky stage · scroll-derived runway · physical card shells
 ============================================================ */
-.showcase{background:var(--ivory);overflow:hidden;}
-.showcase-head{
-  display:flex;align-items:flex-end;justify-content:space-between;
-  gap:20px;flex-wrap:wrap;margin-bottom:clamp(36px,5vw,64px);
-}
-.showcase-head h2{
-  font-family:var(--font-display),serif;font-weight:500;color:var(--walnut);
-  font-size:clamp(2rem,4.8vw,4.2rem);line-height:1.06;margin-top:14px;
-  max-width:16ch;
-}
-.showcase-head .count{
-  font-family:var(--font-ui),sans-serif;text-transform:uppercase;letter-spacing:.26em;
-  font-size:.6rem;color:var(--walnut-soft);padding-bottom:10px;
-}
-
-.lux-stack{
+.deck-section{position:relative;z-index:2;background:var(--ivory);}
+.deck-stage{
+  position:sticky;top:0;height:100svh;overflow:hidden;
   display:flex;flex-direction:column;
-  gap:clamp(24px,4vw,56px);
-  perspective:1400px;
 }
-.lux-row{display:flex;justify-content:flex-start;}
-.lux-row.from-right{justify-content:flex-end;}
+.deck-head{
+  padding:calc(64px + 3svh) var(--gutter) 0;text-align:center;
+}
+.deck-head h2{
+  font-family:var(--font-display),serif;font-weight:500;color:var(--walnut);
+  font-size:clamp(1.6rem,4vw,2.9rem);line-height:1.08;margin-top:10px;
+}
 
-/* ── the card: one bounded, wholly clickable surface ── */
-.lux-card{
-  position:relative;display:block;overflow:hidden;
-  width:min(880px,100%);
-  aspect-ratio:16/10;
-  border-radius:3px;
-  border:1px solid rgba(194,161,95,.55);
-  background:var(--walnut);
+/* stacked stage — grid centers every slot without transforms */
+.deck-cards{
+  flex:1;display:grid;place-items:center;
+  perspective:1300px;min-height:0;
+  padding:2svh 0;
+}
+.deck-slot{
+  grid-area:1/1;
+  will-change:transform,opacity;
+  transform-style:preserve-3d;
+}
+
+/* ── physical card shell ── */
+.deck-card{
+  position:relative;display:flex;flex-direction:column;
+  width:min(78vw,340px);
+  height:min(62svh,520px);
+  padding:16px 16px 14px;
+  background:linear-gradient(168deg,#FEFCF7 0%,#F6EFE1 70%,#F0E6D2 100%);
+  border:1px solid rgba(194,161,95,.62);
+  border-radius:6px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.85),
+    0 2px 6px rgba(78,61,44,.12),
+    0 34px 70px -34px rgba(78,61,44,.5);
   cursor:pointer;
-  box-shadow:0 1px 0 rgba(255,255,255,.6),0 18px 44px -26px rgba(78,61,44,.35);
-  transition:transform .45s var(--ease),box-shadow .5s var(--ease),border-color .4s var(--ease);
-  transform:translateZ(0);
   -webkit-tap-highlight-color:transparent;
+  transition:transform .35s var(--ease),border-color .35s var(--ease),box-shadow .45s var(--ease);
 }
-.lux-card:hover{
-  transform:translateY(-6px);
+.deck-card:hover{
+  transform:translateY(-5px);
   border-color:var(--champagne);
-  box-shadow:0 1px 0 rgba(255,255,255,.6),var(--shadow-lift);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.85),
+    0 2px 6px rgba(78,61,44,.12),
+    0 48px 90px -38px rgba(78,61,44,.6);
 }
-.lux-card:active{transform:translateY(-1px) scale(.988);transition-duration:.12s;}
-.lux-card:focus-visible{outline:2px solid var(--bronze);outline-offset:4px;}
+.deck-card:active{transform:scale(.985);transition-duration:.1s;}
+.deck-card:focus-visible{outline:2px solid var(--bronze);outline-offset:4px;}
 
-/* inner hairline frame — second layer of the double border */
-.lux-inner-frame{
-  position:absolute;inset:10px;z-index:4;pointer-events:none;
-  border:1px solid rgba(253,248,239,.32);border-radius:2px;
-  transition:inset .4s var(--ease),border-color .4s var(--ease);
+/* champagne corner marks on the shell */
+.deck-corners{position:absolute;inset:7px;pointer-events:none;}
+.deck-corners::before,.deck-corners::after{
+  content:"";position:absolute;width:16px;height:16px;
+  transition:width .3s var(--ease),height .3s var(--ease);
 }
-.lux-card:hover .lux-inner-frame,
-.lux-card:active .lux-inner-frame{inset:7px;border-color:rgba(253,248,239,.55);}
+.deck-corners::before{top:0;left:0;border-top:1.5px solid rgba(194,161,95,.85);border-left:1.5px solid rgba(194,161,95,.85);}
+.deck-corners::after{bottom:0;right:0;border-bottom:1.5px solid rgba(194,161,95,.85);border-right:1.5px solid rgba(194,161,95,.85);}
+.deck-card:hover .deck-corners::before,.deck-card:hover .deck-corners::after,
+.deck-card:active .deck-corners::before,.deck-card:active .deck-corners::after{width:24px;height:24px;}
 
-/* champagne corner marks — extend + brighten on hover/press */
-.lux-corners{
-  --ck:rgba(194,161,95,.9);
-  position:absolute;inset:10px;z-index:4;pointer-events:none;
+/* header row: numeral + label live on the card surface */
+.deck-card-top{
+  display:flex;align-items:baseline;justify-content:space-between;
+  padding:2px 4px 10px;
 }
-.lux-corners::before,.lux-corners::after{
-  content:"";position:absolute;width:18px;height:18px;
-  transition:width .35s var(--ease),height .35s var(--ease);
-}
-.lux-corners::before{
-  top:-1px;left:-1px;
-  border-top:1.5px solid var(--ck);border-left:1.5px solid var(--ck);
-}
-.lux-corners::after{
-  bottom:-1px;right:-1px;
-  border-bottom:1.5px solid var(--ck);border-right:1.5px solid var(--ck);
-}
-.lux-card:hover .lux-corners::before,.lux-card:hover .lux-corners::after,
-.lux-card:active .lux-corners::before,.lux-card:active .lux-corners::after{
-  width:26px;height:26px;
-}
-
-/* media viewport — all zoom/drift is clipped in here */
-.lux-media{position:absolute;inset:0;overflow:hidden;}
-.lux-media img{
-  width:100%;height:110%;object-fit:cover;margin-top:-5%;
-  will-change:transform;
-}
-.lux-scrim{
-  position:absolute;inset:0;pointer-events:none;
-  background:
-    linear-gradient(to top,rgba(24,15,6,.72) 0%,rgba(24,15,6,.18) 42%,transparent 60%),
-    linear-gradient(to bottom,rgba(24,15,6,.34) 0%,transparent 26%);
-}
-
-/* integrated numeral + tag */
-.lux-num{
-  position:absolute;top:22px;left:24px;z-index:3;
+.deck-num{
   font-family:var(--font-display),serif;font-style:italic;font-weight:400;
-  font-size:clamp(1.5rem,3vw,2.1rem);line-height:1;color:rgba(253,248,239,.95);
-  text-shadow:0 1px 14px rgba(18,6,0,.5);
+  font-size:1.55rem;line-height:1;color:var(--bronze);
   font-variant-numeric:tabular-nums;
 }
-.lux-tag{
-  position:absolute;top:30px;right:24px;z-index:3;
+.deck-tag{
   font-family:var(--font-ui),sans-serif;font-weight:700;text-transform:uppercase;
-  letter-spacing:.28em;font-size:.54rem;color:var(--champagne);
-  text-shadow:0 1px 8px rgba(18,6,0,.6);
+  letter-spacing:.26em;font-size:.52rem;color:var(--walnut-soft);
 }
 
-/* integrated info bar — title, subtitle, arrow inside the card */
-.lux-info{
-  position:absolute;left:0;right:0;bottom:0;z-index:3;
-  display:flex;align-items:flex-end;justify-content:space-between;gap:16px;
-  padding:22px 24px 20px;
+/* framed image viewport (~60% of card) — internal motion clips here */
+.deck-media{
+  position:relative;flex:1;min-height:0;overflow:hidden;
+  border-radius:3px;border:1px solid rgba(150,118,63,.4);
+  background:var(--walnut);
+  transform:translateZ(0);
 }
-.lux-text{display:flex;flex-direction:column;min-width:0;}
-.lux-text h3{
-  font-family:var(--font-display),serif;font-weight:500;color:#FDF8EF;
-  font-size:clamp(1.5rem,2.8vw,2.4rem);line-height:1.06;
-  text-shadow:0 2px 16px rgba(18,6,0,.55);
-  transition:transform .4s var(--ease);
+.deck-media img{
+  width:112%;height:100%;margin-left:-6%;
+  object-fit:cover;will-change:transform;
 }
-.lux-card:hover .lux-text h3{transform:translateX(4px);}
-.lux-sub{
-  margin-top:6px;color:rgba(253,248,236,.78);font-size:.88rem;
-  text-shadow:0 1px 10px rgba(18,6,0,.55);
+.deck-media-frame{
+  position:absolute;inset:6px;pointer-events:none;
+  border:1px solid rgba(253,248,239,.28);border-radius:2px;
+}
+
+/* footer row: title, descriptor, arrow — on the card surface */
+.deck-card-bottom{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:14px 4px 2px;
+}
+.deck-text{display:flex;flex-direction:column;min-width:0;}
+.deck-text h3{
+  font-family:var(--font-display),serif;font-weight:500;color:var(--walnut);
+  font-size:clamp(1.25rem,4.6vw,1.6rem);line-height:1.08;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.lux-arrow{
-  flex:none;width:46px;height:46px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  border:1px solid rgba(253,248,239,.55);color:#FDF8EF;font-size:1rem;
-  background:rgba(24,15,6,.28);backdrop-filter:blur(6px);
-  transition:background .35s var(--ease),color .35s var(--ease),
-    border-color .35s var(--ease),transform .45s var(--ease);
+.deck-sub{
+  margin-top:4px;color:var(--walnut-soft);font-size:.8rem;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.lux-card:hover .lux-arrow{
+.deck-arrow{
+  flex:none;width:42px;height:42px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid rgba(150,118,63,.5);color:var(--walnut);font-size:.95rem;
+  background:rgba(255,255,255,.55);
+  transition:background .3s var(--ease),color .3s var(--ease),
+    border-color .3s var(--ease),transform .4s var(--ease);
+}
+.deck-card:hover .deck-arrow{
   background:var(--champagne);border-color:var(--champagne);color:#fff;
   transform:rotate(-45deg);
 }
-.lux-card:active .lux-arrow{
+.deck-card:active .deck-arrow{
   background:var(--champagne);border-color:var(--champagne);color:#fff;
 }
 
-/* ── mobile: compact immersive portrait card, tight rhythm ── */
-@media(max-width:899px){
-  .showcase-head{margin-bottom:clamp(28px,7vw,40px);}
-  .lux-stack{gap:clamp(20px,5.5vw,32px);perspective:none;}
-  .lux-row,.lux-row.from-right{justify-content:center;}
-  .lux-card{
-    width:100%;
-    aspect-ratio:4/5;
-    max-height:66vh;
+/* progress: counter + hairline bar */
+.deck-progress{
+  display:flex;align-items:center;gap:16px;justify-content:center;
+  padding:0 var(--gutter) calc(18px + 2svh);
+}
+.deck-count{
+  font-family:var(--font-ui),sans-serif;font-weight:700;letter-spacing:.24em;
+  font-size:.62rem;color:var(--walnut);font-variant-numeric:tabular-nums;
+}
+.deck-count i{font-style:normal;color:var(--walnut-soft);}
+.deck-bar{
+  width:min(200px,34vw);height:1.5px;background:var(--line);overflow:hidden;
+}
+.deck-bar i{background:var(--champagne);}
+.deck-hint{
+  font-family:var(--font-ui),sans-serif;font-weight:700;text-transform:uppercase;
+  letter-spacing:.3em;font-size:.52rem;color:var(--walnut-soft);
+}
+
+/* desktop: larger plates, deeper stage */
+@media(min-width:900px){
+  .deck-card{
+    width:min(32vw,430px);
+    height:min(68svh,590px);
+    padding:20px 20px 18px;
   }
-  .lux-num{top:16px;left:18px;}
-  .lux-tag{top:23px;right:18px;}
-  .lux-info{padding:16px 18px 16px;}
-  .lux-arrow{width:44px;height:44px;}
-  .lux-inner-frame{inset:8px;}
-  .lux-corners{inset:8px;}
+  .deck-head{padding-top:calc(76px + 3svh);}
+  .deck-num{font-size:1.9rem;}
+  .deck-text h3{font-size:clamp(1.5rem,1.9vw,2rem);}
+  .deck-sub{font-size:.88rem;}
 }
-@media(max-width:400px){
-  .lux-card{aspect-ratio:3/4;}
-  .lux-sub{font-size:.82rem;}
-}
+
+/* reduced-motion fallback: simple vertical list of the same cards */
+.deck-section-static{background:var(--ivory);}
+.deck-section-static .deck-head{text-align:left;padding:0 0 34px;}
+.deck-fallback{display:flex;flex-direction:column;align-items:center;gap:28px;}
+.deck-fallback .deck-card{width:min(88vw,420px);height:auto;aspect-ratio:4/5.4;}
 
 /* ============================================================
    NAV MEGA MENU — collections in canonical order

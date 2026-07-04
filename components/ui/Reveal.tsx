@@ -7,8 +7,11 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 type Dir = 'up' | 'left' | 'right';
 
 const variants = (dir: Dir): Variants => {
+  // horizontal offsets stay small: a hidden full-width block translated
+  // beyond the viewport widens the document and, on Android, the whole
+  // layout viewport (cream strip bug) — never exceed ~24px sideways
   const offset =
-    dir === 'left' ? { x: -70, y: 0 } : dir === 'right' ? { x: 70, y: 0 } : { x: 0, y: 40 };
+    dir === 'left' ? { x: -24, y: 12 } : dir === 'right' ? { x: 24, y: 12 } : { x: 0, y: 40 };
   return {
     hidden: { opacity: 0, ...offset },
     show: { opacity: 1, x: 0, y: 0, transition: { duration: 1, ease: EASE, delay: 0 } },

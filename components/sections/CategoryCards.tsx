@@ -6,22 +6,28 @@ import {
   useScroll,
   useSpring,
   useTransform,
+  useMotionValueEvent,
   useReducedMotion,
+  type MotionValue,
 } from 'framer-motion';
 import { categories } from '@/lib/categories';
 import { TransitionLink } from '@/components/layout/PageTransition';
 import { fadeRise, stagger, viewportOnce } from '@/lib/motion';
 
 /* ============================================================
-   COLLECTION CARDS — unified clickable luxury objects
-   One bounded surface per collection: full-bleed showroom image,
-   double-frame champagne border with corner marks, integrated
-   numeral / title / arrow. The card itself never leaves its
-   layout slot — all immersion (zoom, drift) happens INSIDE the
-   clipped media viewport, so no dead space can ever appear.
-   Entrances alternate left/right in canonical order and fire as
-   soon as the card edge enters the viewport (no blank slots).
+   COLLECTION DECK — 3D stacked luxury plates
+   Vertical page scroll drives the deck horizontally: the active
+   card exits right→left while the next advances from the stacked
+   depth behind it. One sticky 100svh stage; the scroll runway is
+   derived from the card count (no arbitrary heights), so the
+   stage releases exactly as card 10 settles — no tail gap.
+   Every card is a physical shell (ivory surface, framed inset
+   image, integrated numeral/label/arrow) and is wholly clickable.
 ============================================================ */
+
+const N = categories.length;
+/** Vertical scroll consumed per card transition (svh units). */
+const STEP_SVH = 55;
 
 function useIsCompact() {
   const [compact, setCompact] = useState(false);
@@ -35,97 +41,89 @@ function useIsCompact() {
   return compact;
 }
 
-const springIn = { type: 'spring', stiffness: 80, damping: 21, mass: 1 } as const;
+/* ── one card in the deck ─────────────────────────────────── */
+function DeckCard({
+  i,
+  active,
+  compact,
+}: {
+  i: number;
+  active: MotionValue<number>;
+  compact: boolean;
+}) {
+  const cat = categories[i];
+  /* stops are ACTIVE-index values, ascending. As `active` passes this
+     card's index i the card goes: far-behind → next → front → exit left.
+     active = i-2 → deep in the stack · i-1 → next · i → front · i+1 → exited */
+  const stops = [i - 2.6, i - 2, i - 1, i, i + 1, i + 1.45];
+  const k = compact ? 0.72 : 1; // spatial intensity on small screens
 
-/* Every `show` neutralizes every key any mode's `hidden` can set. */
-function cardVariants(fromRight: boolean, compact: boolean, reduced: boolean) {
-  const show = {
-    opacity: 1,
-    x: 0,
-    scale: 1,
-    rotateY: 0,
-    filter: 'blur(0px)',
-    transition: springIn,
-  };
-  if (reduced) return { hidden: { opacity: 0 }, show: { ...show, transition: { duration: 0.4 } } };
-  if (compact) {
-    // restrained sideways step — never large enough to expose blank slots
-    return {
-      hidden: { opacity: 0, x: fromRight ? 32 : -32, scale: 0.965, filter: 'blur(4px)' },
-      show,
-    };
-  }
-  return {
-    hidden: {
-      opacity: 0,
-      x: fromRight ? '11%' : '-11%',
-      scale: 0.945,
-      rotateY: fromRight ? -5 : 5,
-      filter: 'blur(8px)',
-    },
-    show,
-  };
-}
+  const x = useTransform(active, stops, [
+    `${24 * k}%`,
+    `${20 * k}%`,
+    `${11 * k}%`,
+    '0%',
+    '-135%',
+    '-160%',
+  ]);
+  const y = useTransform(active, stops, [36 * k, 26 * k, 12 * k, 0, -8, -14]);
+  const scale = useTransform(active, stops, [0.87, 0.9, 0.95, 1, 0.93, 0.9]);
+  const rotateY = useTransform(active, stops, [-12 * k, -11 * k, -7 * k, 0, 10 * k, 14 * k]);
+  const rotateZ = useTransform(active, stops, [0, 0, 0, 0, -5 * k, -7 * k]);
+  const opacity = useTransform(active, stops, [0, 0.85, 1, 1, 0.5, 0]);
+  /* invisible cards must never intercept taps meant for the deck */
+  const pointerEvents = useTransform(opacity, (o) => (o > 0.45 ? 'auto' : 'none'));
 
-function CollectionCard({ index }: { index: number }) {
-  const cat = categories[index];
-  const fromRight = index % 2 === 1;
-  const ref = useRef<HTMLDivElement>(null);
-  const reduced = useReducedMotion();
-  const compact = useIsCompact();
-
-  /* immersive zoom lives INSIDE the clipped media viewport —
-     the card's layout box stays perfectly stable */
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ['start end', 'end start'],
-  });
-  const progress = useSpring(scrollYProgress, { stiffness: 100, damping: 28, restDelta: 0.001 });
-  const zoom = reduced ? 0 : compact ? 0.5 : 1;
-  const imgScale = useTransform(progress, [0, 0.5, 1], [1 + 0.1 * zoom, 1 + 0.04 * zoom, 1.0]);
-  const imgY = useTransform(progress, [0, 1], [-12 * zoom, 12 * zoom]);
+  /* secondary motion: the image drifts against the card inside its
+     clipped frame (card exits left → image eases right) */
+  const imgStops = [i - 1, i, i + 1];
+  const imgX = useTransform(active, imgStops, [`${-7 * k}%`, '0%', '9%']);
+  const imgScale = useTransform(active, imgStops, [1.05, 1, 1.08]);
 
   return (
     <motion.div
-      ref={ref}
-      className={`lux-row${fromRight ? ' from-right' : ''}`}
-      initial="hidden"
-      whileInView="show"
-      /* fires as soon as ~8% of the card crosses the fold — the slot
-         is never visible while empty */
-      viewport={{ once: true, amount: 0.08 }}
-      variants={cardVariants(fromRight, compact, !!reduced)}
+      className="deck-slot"
+      style={{
+        x,
+        y,
+        scale,
+        rotateY,
+        rotateZ,
+        opacity,
+        pointerEvents,
+        zIndex: N - i, // earlier cards always ride above later ones
+      }}
     >
       <TransitionLink
         href={`/collections/${cat.slug}`}
-        className="lux-card"
+        className="deck-card"
         aria-label={`${cat.name} — view collection`}
       >
-        {/* decorative frame layers */}
-        <span className="lux-inner-frame" aria-hidden="true" />
-        <span className="lux-corners" aria-hidden="true" />
+        <span className="deck-corners" aria-hidden="true" />
 
-        <div className="lux-media" aria-hidden="true">
+        <span className="deck-card-top">
+          <span className="deck-num">{String(i + 1).padStart(2, '0')}</span>
+          <span className="deck-tag">{cat.tag}</span>
+        </span>
+
+        <span className="deck-media" aria-hidden="true">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <motion.img
             src={cat.image}
             alt=""
-            loading="lazy"
+            loading={i < 3 ? 'eager' : 'lazy'}
             decoding="async"
-            style={{ objectPosition: cat.focus, scale: imgScale, y: imgY }}
+            style={{ objectPosition: cat.focus, x: imgX, scale: imgScale }}
           />
-          <span className="lux-scrim" />
-        </div>
+          <span className="deck-media-frame" />
+        </span>
 
-        <span className="lux-num">{String(index + 1).padStart(2, '0')}</span>
-        <span className="lux-tag">{cat.tag}</span>
-
-        <span className="lux-info">
-          <span className="lux-text">
+        <span className="deck-card-bottom">
+          <span className="deck-text">
             <h3>{cat.name}</h3>
-            <span className="lux-sub">{cat.tagline}</span>
+            <span className="deck-sub">{cat.tagline}</span>
           </span>
-          <span className="lux-arrow" aria-hidden="true">
+          <span className="deck-arrow" aria-hidden="true">
             →
           </span>
         </span>
@@ -134,34 +132,123 @@ function CollectionCard({ index }: { index: number }) {
   );
 }
 
-export function CategoryCards() {
+/* ── reduced-motion / fallback: plain vertical list ───────── */
+function StaticDeck() {
   return (
-    <section className="block showcase" id="categories">
-      <div className="wrap">
+    <div className="deck-fallback">
+      {categories.map((cat, i) => (
         <motion.div
-          className="showcase-head"
-          variants={stagger(0.12)}
-          initial="hidden"
-          whileInView="show"
-          viewport={viewportOnce}
+          key={cat.slug}
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1, transition: { duration: 0.4 } }}
+          viewport={{ once: true, amount: 0.1 }}
         >
-          <motion.div variants={fadeRise}>
+          <TransitionLink
+            href={`/collections/${cat.slug}`}
+            className="deck-card"
+            aria-label={`${cat.name} — view collection`}
+          >
+            <span className="deck-corners" aria-hidden="true" />
+            <span className="deck-card-top">
+              <span className="deck-num">{String(i + 1).padStart(2, '0')}</span>
+              <span className="deck-tag">{cat.tag}</span>
+            </span>
+            <span className="deck-media" aria-hidden="true">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={cat.image} alt="" loading="lazy" decoding="async" style={{ objectPosition: cat.focus }} />
+              <span className="deck-media-frame" />
+            </span>
+            <span className="deck-card-bottom">
+              <span className="deck-text">
+                <h3>{cat.name}</h3>
+                <span className="deck-sub">{cat.tagline}</span>
+              </span>
+              <span className="deck-arrow" aria-hidden="true">→</span>
+            </span>
+          </TransitionLink>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+export function CategoryCards() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const reduced = useReducedMotion();
+  const compact = useIsCompact();
+  const [current, setCurrent] = useState(1);
+
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ['start start', 'end end'],
+  });
+  const smooth = useSpring(scrollYProgress, { stiffness: 120, damping: 26, restDelta: 0.001 });
+  /* fractional active card index 0 → N-1 across the runway */
+  const active = useTransform(smooth, [0, 1], [0, N - 1]);
+  const barScale = useTransform(smooth, [0, 1], [0, 1]);
+
+  useMotionValueEvent(active, 'change', (v) => {
+    const n = Math.min(N, Math.max(1, Math.round(v) + 1));
+    setCurrent((p) => (p === n ? p : n));
+  });
+
+  if (reduced) {
+    return (
+      <section className="block deck-section-static" id="categories">
+        <div className="wrap">
+          <div className="deck-head">
             <div className="eyebrow">The Collections</div>
             <h2>
               Ten worlds of <span className="serif-italic">luxury living</span>
             </h2>
+          </div>
+          <StaticDeck />
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section
+      ref={sectionRef}
+      className="deck-section"
+      id="categories"
+      /* runway derived from card count: one stage + (N-1) transitions */
+      style={{ height: `calc(100svh + ${(N - 1) * STEP_SVH}svh)` }}
+    >
+      <div className="deck-stage">
+        <motion.div
+          className="deck-head"
+          variants={stagger(0.1)}
+          initial="hidden"
+          whileInView="show"
+          viewport={viewportOnce}
+        >
+          <motion.div className="eyebrow" variants={fadeRise}>
+            The Collections
           </motion.div>
-          <motion.span className="count" variants={fadeRise}>
-            10 Collections · Velachery Showroom
-          </motion.span>
+          <motion.h2 variants={fadeRise}>
+            Ten worlds of <span className="serif-italic">luxury living</span>
+          </motion.h2>
         </motion.div>
 
-        <div className="lux-stack">
+        <div className="deck-cards">
           {categories.map((cat, i) => (
-            <CollectionCard key={cat.slug} index={i} />
+            <DeckCard key={cat.slug} i={i} active={active} compact={compact} />
           ))}
+        </div>
+
+        <div className="deck-progress" aria-hidden="true">
+          <span className="deck-count">
+            {String(current).padStart(2, '0')} <i>/</i> {String(N).padStart(2, '0')}
+          </span>
+          <span className="deck-bar">
+            <motion.i style={{ scaleX: barScale, transformOrigin: 'left', display: 'block', height: '100%' }} />
+          </span>
+          <span className="deck-hint">Scroll</span>
         </div>
       </div>
     </section>
   );
 }
+

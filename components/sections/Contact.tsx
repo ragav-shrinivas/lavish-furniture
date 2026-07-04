@@ -27,7 +27,7 @@ export function Contact() {
   return (
     <section className="block contact" id="contact">
       <div className="wrap contact-grid">
-        <Reveal dir="left">
+        <Reveal>
           <div className="eyebrow">Visit · Call · Message</div>
           <div className="section-head left" style={{ marginBottom: 0 }}>
             <h3>
@@ -59,7 +59,7 @@ export function Contact() {
           </div>
         </Reveal>
 
-        <Reveal dir="right">
+        <Reveal delay={0.12}>
           <div className="map-card">
             <iframe
               title="Lavish Furniture — Velachery, Chennai"

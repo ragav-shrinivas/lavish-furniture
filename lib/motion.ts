@@ -77,5 +77,8 @@ export const stagger = (gap: number = STAGGER.standard, delay = 0): Variants => 
   show: { transition: { staggerChildren: gap, delayChildren: delay } },
 });
 
-/** Default viewport config for whileInView reveals. */
-export const viewportOnce = { once: true, amount: 0.25, margin: '0px 0px -10% 0px' } as const;
+/** Default viewport config for whileInView reveals.
+ *  Low threshold, no negative margin: tall blocks must never sit
+ *  invisible-but-space-occupying while the user scrolls into them
+ *  (that reads as giant blank regions on mobile). */
+export const viewportOnce = { once: true, amount: 0.12 } as const;
