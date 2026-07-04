@@ -1,13 +1,10 @@
 import { NextResponse } from 'next/server';
+import { ADMIN_SESSION_VALUE } from '@/lib/admin-auth';
 
-export async function POST(request: Request) {
-  const { password } = await request.json();
-  if (password !== process.env.ADMIN_PASSWORD) {
-    return NextResponse.json({ success: false, error: 'Invalid password' }, { status: 401 });
-  }
-  const token = process.env.ADMIN_SESSION_TOKEN!;
+/** No password gate — reachable only via the hidden EVO9 trigger. */
+export async function POST() {
   const response = NextResponse.json({ success: true });
-  response.cookies.set('lavish_admin', token, {
+  response.cookies.set('lavish_admin', ADMIN_SESSION_VALUE, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
