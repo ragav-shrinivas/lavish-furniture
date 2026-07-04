@@ -20,21 +20,29 @@ export function ContentPanel({ initialContent }: { initialContent: SiteContent }
   const [form, setForm] = useState(initialContent);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState(false);
 
   function set(key: keyof SiteContent, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
     setSaved(false);
+    setError(false);
   }
 
   async function handleSave() {
     setSaving(true);
-    await fetch('/api/content', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    });
+    setError(false);
+    try {
+      const res = await fetch('/api/content', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      setSaved(res.ok);
+      setError(!res.ok);
+    } catch {
+      setError(true);
+    }
     setSaving(false);
-    setSaved(true);
   }
 
   return (
@@ -89,7 +97,8 @@ export function ContentPanel({ initialContent }: { initialContent: SiteContent }
         <button style={S.saveBtn} onClick={handleSave} disabled={saving}>
           {saving ? 'Saving…' : 'Save Changes'}
         </button>
-        {saved && <span style={S.saved}>✓ Saved</span>}
+        {saved && <span style={S.saved}>✓ Saved — live on site</span>}
+        {error && <span style={{ ...S.saved, color: '#c05050' }}>Save failed — check storage setup</span>}
       </div>
     </div>
   );

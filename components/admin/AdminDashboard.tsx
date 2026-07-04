@@ -4,11 +4,13 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import type { AdminProduct, AdminReview, SiteContent } from '@/types/admin';
+import type { Category } from '@/lib/categories';
+import { CollectionsPanel } from './CollectionsPanel';
 import { ProductsPanel } from './ProductsPanel';
 import { ReviewsPanel } from './ReviewsPanel';
 import { ContentPanel } from './ContentPanel';
 
-type Tab = 'products' | 'reviews' | 'content';
+type Tab = 'collections' | 'products' | 'reviews' | 'content';
 
 const T: Record<string, React.CSSProperties> = {
   wrap: {
@@ -85,12 +87,14 @@ export function AdminDashboard({
   products,
   reviews,
   content,
+  collections,
 }: {
   products: AdminProduct[];
   reviews: AdminReview[];
   content: SiteContent;
+  collections: Category[];
 }) {
-  const [tab, setTab] = useState<Tab>('products');
+  const [tab, setTab] = useState<Tab>('collections');
   const router = useRouter();
 
   async function logout() {
@@ -109,12 +113,14 @@ export function AdminDashboard({
       </header>
 
       <div style={T.tabs}>
+        <Tab label="Collections" active={tab === 'collections'} onClick={() => setTab('collections')} />
         <Tab label="Products" active={tab === 'products'} onClick={() => setTab('products')} />
         <Tab label="Reviews" active={tab === 'reviews'} onClick={() => setTab('reviews')} />
         <Tab label="Content" active={tab === 'content'} onClick={() => setTab('content')} />
       </div>
 
       <div style={{ padding: '24px 20px', maxWidth: 1100, margin: '0 auto' }}>
+        {tab === 'collections' && <CollectionsPanel collections={collections} />}
         {tab === 'products' && <ProductsPanel initialProducts={products} />}
         {tab === 'reviews' && <ReviewsPanel initialReviews={reviews} />}
         {tab === 'content' && <ContentPanel initialContent={content} />}

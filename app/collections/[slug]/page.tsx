@@ -2,7 +2,8 @@ export const dynamic = 'force-dynamic';
 
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { categories, getCategory } from '@/lib/categories';
+import { getCategory } from '@/lib/categories';
+import { getCollection } from '@/lib/collections';
 import { getGalleryImages } from '@/lib/gallery';
 import { getProductsByCategory } from '@/lib/data-store';
 import { CategoryView } from '@/components/sections/CategoryView';
@@ -11,6 +12,7 @@ import { breadcrumbJsonLd, categoryJsonLd } from '@/lib/seo';
 import { siteConfig } from '@/lib/config';
 
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
+  // Metadata stays on canonical code data (title/description are SEO-stable).
   const cat = getCategory(params.slug);
   if (!cat) return { title: 'Collection' };
 
@@ -39,12 +41,14 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
   };
 }
 
-export default function CategoryPage({ params }: { params: { slug: string } }) {
-  const cat = getCategory(params.slug);
+export default async function CategoryPage({ params }: { params: { slug: string } }) {
+  const cat = await getCollection(params.slug);
   if (!cat) notFound();
 
-  const images = getGalleryImages(cat.slug);
-  const adminProducts = getProductsByCategory(cat.slug);
+  const [images, adminProducts] = await Promise.all([
+    getGalleryImages(cat.slug),
+    getProductsByCategory(cat.slug),
+  ]);
 
   const breadcrumb = breadcrumbJsonLd([
     { name: 'Home', url: siteConfig.url },

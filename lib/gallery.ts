@@ -1,19 +1,19 @@
+import 'server-only';
 import fs from 'node:fs';
 import path from 'node:path';
 import { getProductsByCategory } from './data-store';
 
 /**
- * Returns web-accessible image paths for a category.
- * Admin-uploaded product images come first, followed by any files
- * dropped into public/products/<slug>/ (legacy folder method still works).
+ * Web-accessible image paths for a category's gallery.
+ * Admin-managed product images (Supabase) come first, followed by any
+ * legacy files committed to public/products/<slug>/. CategoryView dedupes
+ * product images so they don't appear twice.
  */
-export function getGalleryImages(slug: string): string[] {
-  // Admin-uploaded product images (from data/products.json)
-  const adminImages = getProductsByCategory(slug)
+export async function getGalleryImages(slug: string): Promise<string[]> {
+  const adminImages = (await getProductsByCategory(slug))
     .filter((p) => p.image)
     .map((p) => p.image);
 
-  // File-based images from public/products/<slug>/
   let fileImages: string[] = [];
   try {
     const dir = path.join(process.cwd(), 'public', 'products', slug);

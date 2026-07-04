@@ -3,14 +3,25 @@ export const dynamic = 'force-dynamic';
 import { redirect } from 'next/navigation';
 import { isAdminAuthenticated } from '@/lib/admin-auth';
 import { getProducts, getReviews, getSiteContent } from '@/lib/data-store';
+import { getCollections } from '@/lib/collections';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
   if (!isAdminAuthenticated()) redirect('/admin');
 
-  const products = getProducts();
-  const reviews = getReviews();
-  const content = getSiteContent();
+  const [products, reviews, content, collections] = await Promise.all([
+    getProducts(),
+    getReviews(),
+    getSiteContent(),
+    getCollections(),
+  ]);
 
-  return <AdminDashboard products={products} reviews={reviews} content={content} />;
+  return (
+    <AdminDashboard
+      products={products}
+      reviews={reviews}
+      content={content}
+      collections={collections}
+    />
+  );
 }

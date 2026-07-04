@@ -6,13 +6,18 @@ import { Testimonials } from '@/components/sections/Testimonials';
 import { Contact } from '@/components/sections/Contact';
 import { startingSequence, carvedSequence } from '@/lib/frames';
 import { siteConfig } from '@/lib/config';
+import { getCollections } from '@/lib/collections';
+
+// Read fresh collection data (incl. admin image edits) on every request.
+export const dynamic = 'force-dynamic';
 
 /**
  * Homepage — an immersive showroom journey:
  * opening film → editorial manifesto → collection index →
  * carved heritage film → craftsmanship → reviews → contact.
  */
-export default function Home() {
+export default async function Home() {
+  const collections = await getCollections();
   return (
     <>
       <span id="top" />
@@ -55,7 +60,7 @@ export default function Home() {
       <Credibility />
 
       {/* ── Collection discovery index (business order 1–10) ── */}
-      <CategoryCards />
+      <CategoryCards collections={collections} />
 
       {/* ── ACT 2: the carved heritage film (scroll-scrubbed) ── */}
       <FrameSequenceHero config={carvedSequence} />

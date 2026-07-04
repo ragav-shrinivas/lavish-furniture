@@ -10,7 +10,7 @@ import {
   useReducedMotion,
   type MotionValue,
 } from 'framer-motion';
-import { categories } from '@/lib/categories';
+import type { Category } from '@/lib/categories';
 import { TransitionLink } from '@/components/layout/PageTransition';
 import { fadeRise, stagger, viewportOnce } from '@/lib/motion';
 
@@ -25,7 +25,6 @@ import { fadeRise, stagger, viewportOnce } from '@/lib/motion';
    image, integrated numeral/label/arrow) and is wholly clickable.
 ============================================================ */
 
-const N = categories.length;
 /** Vertical scroll consumed per card transition (svh units). */
 const STEP_SVH = 55;
 
@@ -44,14 +43,17 @@ function useIsCompact() {
 /* ── one card in the deck ─────────────────────────────────── */
 function DeckCard({
   i,
+  cat,
+  total,
   active,
   compact,
 }: {
   i: number;
+  cat: Category;
+  total: number;
   active: MotionValue<number>;
   compact: boolean;
 }) {
-  const cat = categories[i];
   /* stops are ACTIVE-index values, ascending. As `active` passes this
      card's index i the card goes: far-behind → next → front → exit left.
      active = i-2 → deep in the stack · i-1 → next · i → front · i+1 → exited */
@@ -91,7 +93,7 @@ function DeckCard({
         rotateZ,
         opacity,
         pointerEvents,
-        zIndex: N - i, // earlier cards always ride above later ones
+        zIndex: total - i, // earlier cards always ride above later ones
       }}
     >
       <TransitionLink
@@ -133,10 +135,10 @@ function DeckCard({
 }
 
 /* ── reduced-motion / fallback: plain vertical list ───────── */
-function StaticDeck() {
+function StaticDeck({ collections }: { collections: Category[] }) {
   return (
     <div className="deck-fallback">
-      {categories.map((cat, i) => (
+      {collections.map((cat, i) => (
         <motion.div
           key={cat.slug}
           initial={{ opacity: 0 }}
@@ -172,11 +174,12 @@ function StaticDeck() {
   );
 }
 
-export function CategoryCards() {
+export function CategoryCards({ collections }: { collections: Category[] }) {
   const sectionRef = useRef<HTMLElement>(null);
   const reduced = useReducedMotion();
   const compact = useIsCompact();
   const [current, setCurrent] = useState(1);
+  const N = collections.length;
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,
@@ -202,7 +205,7 @@ export function CategoryCards() {
               Ten worlds of <span className="serif-italic">luxury living</span>
             </h2>
           </div>
-          <StaticDeck />
+          <StaticDeck collections={collections} />
         </div>
       </section>
     );
@@ -233,8 +236,8 @@ export function CategoryCards() {
         </motion.div>
 
         <div className="deck-cards">
-          {categories.map((cat, i) => (
-            <DeckCard key={cat.slug} i={i} active={active} compact={compact} />
+          {collections.map((cat, i) => (
+            <DeckCard key={cat.slug} i={i} cat={cat} total={N} active={active} compact={compact} />
           ))}
         </div>
 
